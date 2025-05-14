@@ -112,7 +112,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
     }
   
     try {
-      const response = await fetch(`http://127.0.0.1:5000/cybedefender/forgot-password`, {
+      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
     };
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/cybedefender/signup`, {
+      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
