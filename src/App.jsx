@@ -13,9 +13,12 @@ import Settings from './components/Setting';
 import Support from './components/Support';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import registrationCircle from './assests/Registration_circle.svg';
+import registrationCross from './assests/Registration_cross.svg';
 import Cookies from 'js-cookie';
 import ProfileSettings from './components/ProfileSetting';
 import TermsAndConditionsModal from './TermsAndConditionsModal';
+import { jwtDecode } from 'jwt-decode';
+
 
 function AuthPages({ isAuthenticated, setIsAuthenticated }) {
   const [activeTab, setActiveTab] = useState('Login');
@@ -31,6 +34,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
   const [error, setError] = useState('');
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [resetLinkSent, setResetLinkSent] = useState(false);
+  const [resetLinkError, setResetLinkError] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -85,6 +89,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
       Cookies.set('guid', data.guid);
       Cookies.set('email',data.email);
       Cookies.set('username',data.name);
+      localStorage.setItem('token', data.token);
       setIsAuthenticated(true);
     } catch (error) {
       setError('Login failed. Please try again.');
@@ -107,7 +112,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
     }
   
     try {
-      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/forgot-password`, {
+      const response = await fetch(`http://127.0.0.1:5000/cybedefender/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,9 +127,11 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
       const data = await response.json();
       console.log('Reset link sent:', data);
       setResetLinkSent(true);
+      setResetLinkError(false);
     } catch (error) {
-      setResetLinkSent(true);
-      setError('Failed to send reset link. Please try again.');
+      setResetLinkError(true);
+      setResetLinkSent(false);
+      setError('');
       console.error('Error:', error);
     }
   };
@@ -204,7 +211,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
     };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/signup`, {
+      const response = await fetch(`http://127.0.0.1:5000/cybedefender/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +248,6 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
   const closeTermsModal = () => {
     setIsTermsModalOpen(false);
   };
-
   return (
     <div className="container">
       <div className="left">
@@ -254,14 +260,11 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
           <img src={Logo} alt="Logo" className="logo" />
           <h2>Cybedefender AI</h2>
         </div>
-
+  
         {registrationSuccess ? (
           <div className="success-message">
             <div className="tick">
-              <img
-                src={registrationCircle}
-                alt="checkcircle"
-              />
+              <img src={registrationCircle} alt="checkcircle" />
             </div>
             <h3>Successfully Registered</h3>
             <p className="text-Grey-500 text-center mt-5">
@@ -292,6 +295,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
                 </button>
               </div>
             )}
+  
             {forgotPassword ? (
               resetLinkSent ? (
                 <div className="success-message">
@@ -300,15 +304,34 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
                   </div>
                   <h3>Reset Link Sent</h3>
                   <p className="text-Grey-500 text-center mt-5">
-                    {'Check your email for the reset link.'}
+                    Check your email for the reset link.
                   </p>
                   <p className="text-Grey-500 text-center mt-5">
-                    {'Return to'}{' '}
+                    Return to{' '}
                     <span
                       className="cursor-pointer signIn"
                       onClick={() => handleTabClick('Login')}
                     >
-                      {'Sign In'}
+                      Sign In
+                    </span>
+                  </p>
+                </div>
+              ) : resetLinkError ? (
+                <div className="success-message">
+                  <div className="tick">
+                    <img src={registrationCross} alt="crosscircle" />
+                  </div>
+                  <h3>Reset Link Not Sent</h3>
+                  <p className="text-Grey-500 text-center mt-5">
+                    Please try again after sometime.
+                  </p>
+                  <p className="text-Grey-500 text-center mt-5">
+                    Return to{' '}
+                    <span
+                      className="cursor-pointer signIn"
+                      onClick={() => handleTabClick('Login')}
+                    >
+                      Sign In
                     </span>
                   </p>
                 </div>
@@ -349,7 +372,6 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
                   value={formData.email}
                   onChange={handleInputChange}
                 />
-
                 <label className="form-label">Password</label>
                 <div className="password-container">
                   <input
@@ -414,7 +436,7 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
                     alt="show"
                   />
                 </div>
-                <label className="form-label">Confirm Password </label>
+                <label className="form-label">Confirm Password</label>
                 <div className="password-container">
                   <input
                     type={showPasswordAgain ? 'text' : 'password'}
@@ -432,7 +454,12 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
                   />
                 </div>
                 <div className="terms">
-                  <input type="checkbox" id="terms" checked={termsAccepted} onChange={() => setTermsAccepted(!termsAccepted)}/>
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={termsAccepted}
+                    onChange={() => setTermsAccepted(!termsAccepted)}
+                  />
                   <label htmlFor="terms">
                     I accept Company's <a href="/terms" onClick={openTermsModal}>Terms of use & Privacy Policy</a>.
                   </label>
@@ -442,6 +469,11 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
             )}
           </>
         )}
+      
+  
+  
+
+ 
 
         {error && <p className="error">{error}</p>}
       </div>
@@ -459,10 +491,40 @@ function AuthPages({ isAuthenticated, setIsAuthenticated }) {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true); 
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    console.log("token",token)
+    if (!token) {
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+      const now = Date.now() / 1000;
+
+      if (decoded.exp < now) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Token decode failed', error);
+      setIsAuthenticated(false);
+    }
+    setLoading(false);
+  }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
+
+  if (loading) return null; 
 
   return (
     <Router>
