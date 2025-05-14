@@ -46,7 +46,7 @@ const Reports = ({ onLogout }) => {
 
       const payload = JSON.stringify({ userId });
       setLoading(true);
-      const response = await fetch(`http://127.0.0.1:5000/cybedefender/reports`,{
+      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/reports`,{
         method: 'POST',
         headers,
         body: payload
@@ -82,7 +82,7 @@ const Reports = ({ onLogout }) => {
         'Authorization': `Bearer ${token}`
       };
       const payload = JSON.stringify({ userId });
-      const response = await fetch(`http://127.0.0.1:5000/cybedefender/download/${fileName}`,{
+      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/download/${fileName}`,{
         method: 'POST',
         headers,
         body: payload

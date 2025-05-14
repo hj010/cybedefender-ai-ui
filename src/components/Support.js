@@ -47,7 +47,7 @@ const Support = ({ onLogout }) => {
       }
   
       // Make API call
-      const response = await fetch(`http://127.0.0.1:5000/cybedefender/support`, {
+      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/support`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
