@@ -144,9 +144,16 @@ const FileUploadModal = ({ isOpen, onClose }) => {
                 >
                   <Upload className="w-8 h-8 text-blue-600 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">Choose a file or drag & drop it here</p>
-                  <p className="text-gray-400 text-sm mb-4">Only .csv format, up to 5MB</p>
+                  <p className="text-gray-400 text-sm mb-4">Only .csv format, up to 50MB</p>
                   <p className="text-sm text-gray-500 mb-4">
-                    Download sample file <a href="#" className="text-blue-600">here</a>.
+                    Download sample file{" "}
+                    <a
+                      href="/sample.csv"
+                      download
+                      className="text-blue-600 hover:underline"
+                    >
+                      here
+                    </a>.
                   </p>
                   <button
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"

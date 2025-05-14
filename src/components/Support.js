@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 import AppLayout from './Layout';
+import Cookies from 'js-cookie';
 
 const Support = ({ onLogout }) => {
   const [formData, setFormData] = useState({
-    email: '',
     query: ''
   });
   const [status, setStatus] = useState({
@@ -24,7 +24,7 @@ const Support = ({ onLogout }) => {
     e.preventDefault();
   
     // Validate inputs
-    if (!formData.email || !formData.query) {
+    if (!formData.query) {
       setStatus({
         message: 'Please fill out all fields',
         type: 'error'
@@ -34,14 +34,9 @@ const Support = ({ onLogout }) => {
   
     try {
       // Get userid and token from cookies
-      const userid = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('guid='))
-        ?.split('=')[1];
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
+      const token = Cookies.get('token');
+      const userid = Cookies.get('guid');
+      const email = Cookies.get('email')
   
       if (!userid || !token) {
         setStatus({
@@ -52,7 +47,7 @@ const Support = ({ onLogout }) => {
       }
   
       // Make API call
-      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/support`, {
+      const response = await fetch(`http://127.0.0.1:5000/cybedefender/support`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +55,7 @@ const Support = ({ onLogout }) => {
         },
         body: JSON.stringify({
           userid,
-          email: formData.email,
+          email,
           query: formData.query
         })
       });
@@ -77,7 +72,6 @@ const Support = ({ onLogout }) => {
   
       // Reset form
       setFormData({
-        email: '',
         query: ''
       });
     } catch (error) {
@@ -118,21 +112,6 @@ const Support = ({ onLogout }) => {
         )}
         
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email address"
-            />
-          </div>
-          
           <div className="mb-6">
             <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-1">
               Your Question or Issue

@@ -28,7 +28,8 @@ const Alerts = ({ onLogout }) => {
     const [selectedThreat, setSelectedThreat] = useState(null);
     const [alerts, setAlerts] = useState([]); // Replace the dummy alerts array with state
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [uploadHistoryError, setUploadHistoryError] = useState(null);
+    const [alertsError, setAlertsError] = useState(null);
 
     useEffect(() => {
         fetchAlerts();
@@ -37,7 +38,7 @@ const Alerts = ({ onLogout }) => {
     const fetchAlerts = async () => {
         try {
             setIsLoading(true);
-            setError(null);
+            setAlertsError(null);
             
             const token = Cookies.get('token');
             const userId = Cookies.get('guid');
@@ -67,7 +68,7 @@ const Alerts = ({ onLogout }) => {
             const data = await response.json();
             setAlerts(data.alerts);
         } catch (err) {
-            setError(err.message);
+            setAlertsError(err.message);
             console.error('Error fetching alerts:', err);
         } finally {
             setIsLoading(false);
@@ -76,11 +77,11 @@ const Alerts = ({ onLogout }) => {
 
     const fetchUploadHistory = async () => {
         setLoading(true);
-        setError(null);
+        setUploadHistoryError(null);
         const token = Cookies.get('token')
         const userId = Cookies.get('guid')
         try {
-            const response = await axios.get(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}cybedefender/upload-history`, {
+            const response = await axios.get(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/upload-history`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -90,7 +91,7 @@ const Alerts = ({ onLogout }) => {
             });
             setUploadHistory(response.data);
         } catch (err) {
-            setError('Error fetching upload history');
+            setUploadHistoryError('Error fetching upload history');
         } finally {
             setLoading(false);
         }
@@ -247,7 +248,7 @@ const Alerts = ({ onLogout }) => {
     };
 
     const severityOptions = ["All", "High", "Medium", "Low"];
-    const threatTypeOptions = ["All", "Malware", "Virus", "Benign", "Bot", "DDoS", "DoS GoldenEye", "DoS Hulk", "DoS Slowhttptest", "DoS Slowloris", "FTP-Patator", "Heartbleed", "Infiltration", "PortScan", "SSH-Patator", "Web Brute","Sql Injection","Web Attack XSS"];
+    const threatTypeOptions = ["All", "Benign", "BOT", "DDoS", "DoS GoldenEye", "DoS Hulk", "DoS Slowhttptest", "DoS Slowloris", "FTP-Patator", "Heartbleed", "Infiltration", "PortScan", "SSH-Patator", "Web Attack - Brute Force","Sql Injection","Web Attack XSS"];
 
     return (
         <AppLayout onLogout={onLogout}>
@@ -293,9 +294,9 @@ const Alerts = ({ onLogout }) => {
                 <div className="bg-white rounded-lg shadow">
                     <div className="overflow-x-auto">
                     {loading ? (
-                            <div>Loading...</div>
-                        ) : error ? (
-                            <div>{error}</div>
+                             <NoAlertsState message="Loading..." />
+                        ) : uploadHistoryError ? (
+                            <NoAlertsState message={uploadHistoryError} />
                         ) :
                         uploadHistory.length > 0 ? (
 
@@ -326,7 +327,7 @@ const Alerts = ({ onLogout }) => {
                     </div>
                     {/* Pagination Controls */}
                     {
-                        uploadHistory.length > 0 && (
+                       !loading && !uploadHistoryError &&  uploadHistory.length > 0 && (
 
                             <div className="p-4 border-t flex justify-between items-center text-sm text-gray-600">
                                 <button
@@ -421,10 +422,8 @@ const Alerts = ({ onLogout }) => {
                 <div className="p-8 text-center text-gray-600">
                     Loading alerts...
                 </div>
-            ) : error ? (
-                <div className="p-8 text-center text-red-600">
-                    {error}
-                </div>
+            ) : alertsError ? (
+                <NoAlertsState message={alertsError} />
             ) : paginatedAlerts.length ? (
                             <table className="w-full">
                                 <thead className="bg-gray-50">
@@ -436,29 +435,32 @@ const Alerts = ({ onLogout }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedAlerts.map((alert, index) => (
-                                        <tr key={index} className="border-t">
-                                            <td className="p-4 text-gray-900">{alert.date.split(" ")[0]}</td>
-                                            <td className="p-4 text-gray-900">{alert.threatType}</td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 rounded-full text-sm ${getSeverityClass(alert.severity)}`}>
-                                                    {alert.severity}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <button className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                                    onClick={() => {
-                                                        setSelectedThreat(alert.threatType);
-                                                        setIsDetailsModalOpen(true);
-                                                    }}>
-
-
-                                                    View Details
-                                                </button>
-                                            </td>
-                                        </tr>
+                                {paginatedAlerts
+                                    .filter(alert => alert.threatType !== "Normal") // Filter out "Normal"
+                                    .map((alert, index) => (
+                                    <tr key={index} className="border-t">
+                                        <td className="p-4 text-gray-900">{alert.date}</td>
+                                        <td className="p-4 text-gray-900">{alert.threatType}</td>
+                                        <td className="p-4">
+                                        <span className={`px-2 py-1 rounded-full text-sm ${getSeverityClass(alert.severity)}`}>
+                                            {alert.severity}
+                                        </span>
+                                        </td>
+                                        <td className="p-4">
+                                        <button
+                                            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                            onClick={() => {
+                                            setSelectedThreat(alert.threatType);
+                                            setIsDetailsModalOpen(true);
+                                            }}
+                                        >
+                                            View Details
+                                        </button>
+                                        </td>
+                                    </tr>
                                     ))}
                                 </tbody>
+
                             </table>
                         ) : (
                             <NoAlertsState message="No Alerts Found" />

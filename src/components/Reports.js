@@ -46,7 +46,7 @@ const Reports = ({ onLogout }) => {
 
       const payload = JSON.stringify({ userId });
       setLoading(true);
-      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/reports`,{
+      const response = await fetch(`http://127.0.0.1:5000/cybedefender/reports`,{
         method: 'POST',
         headers,
         body: payload
@@ -82,7 +82,7 @@ const Reports = ({ onLogout }) => {
         'Authorization': `Bearer ${token}`
       };
       const payload = JSON.stringify({ userId });
-      const response = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/download/${fileName}`,{
+      const response = await fetch(`http://127.0.0.1:5000/cybedefender/download/${fileName}`,{
         method: 'POST',
         headers,
         body: payload
@@ -192,10 +192,10 @@ const Reports = ({ onLogout }) => {
   if (loading) {
     return (
       <AppLayout onLogout={onLogout}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-600">Loading reports...</div>
-        </div>
-      </AppLayout>
+          <div className="flex items-center justify-center h-[70vh]">
+            <div className="text-lg font-medium text-gray-600">Loading reports...</div>
+          </div>
+                </AppLayout>
     );
   }
 
@@ -213,19 +213,19 @@ const Reports = ({ onLogout }) => {
         {/* Filter Header */}
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap items-center">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Date Range:</span>
                 <DateRangePicker
                   onApply={(range) => handleFilterChange("dateRange", range)}
-                  value={filters.dateRange} 
+                  value={filters.dateRange}
                 />
               </div>
-
+  
               {/* Clear All Button */}
               <button
-                className="text-gray-600 m-0 hover:text-gray-800"
-                onClick={() =>
+                className="text-gray-600 hover:text-gray-800 mt-0"
+                onClick={() => {
                   setFilters({
                     severity: "",
                     threatType: "",
@@ -233,100 +233,91 @@ const Reports = ({ onLogout }) => {
                       start: null,
                       end: null,
                     },
-                  }, setCurrentPage(1))
-                }
+                  });
+                  setCurrentPage(1);
+                }}
               >
                 Clear All
               </button>
             </div>
           </div>
         </div>
+  
+        {/* No Report State */}
         {reports.length > 0 && filteredReports.length === 0 ? (
-        <div className="p-8">
-          <NoReportState message="No reports available for the selected date range." />
-        </div>
-      ) : (
-        <>
-        
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="py-4 px-6 text-left">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    checked={selectedReports.length === filteredReports.length && filteredReports.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="py-4 px-6 text-left">
-                  <span className="text-gray-900 font-semibold">Title</span>
-                </th>
-                <th className="py-4 px-6 text-left">
-                  <span className="text-gray-900 font-semibold">Date Created</span>
-                </th>
-                <th className="py-4 px-6"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {paginatedReports.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="py-4 px-6">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={selectedReports.includes(report.id)}
-                      onChange={() => handleSelectReport(report.id)}
-                    />
-                  </td>
-                  <td className="py-4 px-6 text-gray-900 font-medium">{report.filename}</td>
-                  <td className="py-4 px-6 text-gray-900">{report.dateCreated}</td>
-                  <td className="py-4 px-6 text-right">
-                    <button 
-                      className="text-blue-600 hover:text-blue-700 font-medium"
-                      onClick={() => handleDownload(report.filename)}
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination - Copied from alerts.js */}
-        {filteredReports.length > 0 && (
-          <div className="p-4 border-t flex justify-between items-center text-sm text-gray-600">
-            <button
-              onClick={() => handlePagination(-1)}
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300"
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span>
-              Page {currentPage} of {Math.ceil(filteredReports.length / itemsPerPage)}
-            </span>
-            <button
-              onClick={() => handlePagination(1)}
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300"
-              disabled={currentPage === Math.ceil(filteredReports.length / itemsPerPage)}
-            >
-              Next
-            </button>
+          <div className="p-8">
+            <NoReportState message="No reports available for the selected date range." />
           </div>
-        )}
+        ) : (
+          <>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="py-4 px-6 text-left">
+                      <span className="text-gray-900 font-semibold">Title</span>
+                    </th>
+                    <th className="py-4 px-6 text-left">
+                      <span className="text-gray-900 font-semibold">Date Created</span>
+                    </th>
+                    <th className="py-4 px-6 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedReports.map((report) => (
+                    <tr key={report.id} className="hover:bg-gray-50">
+                      <td className="py-4 px-6 text-gray-900 font-medium">
+                        {report.filename}
+                      </td>
+                      <td className="py-4 px-6 text-gray-900">
+                        {report.dateCreated}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button
+                          className="text-blue-600 hover:text-blue-700 font-medium"
+                          onClick={() => handleDownload(report.filename)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+  
+            {/* Pagination */}
+            {filteredReports.length > 0 && (
+              <div className="p-4 border-t flex justify-between items-center text-sm text-gray-600">
+                <button
+                  onClick={() => handlePagination(-1)}
+                  className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300"
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {currentPage} of{" "}
+                  {Math.ceil(filteredReports.length / itemsPerPage)}
+                </span>
+                <button
+                  onClick={() => handlePagination(1)}
+                  className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300"
+                  disabled={
+                    currentPage === Math.ceil(filteredReports.length / itemsPerPage)
+                  }
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
-        
-        
         )}
       </div>
     </AppLayout>
   );
-};
+
+}
 
 export default Reports;

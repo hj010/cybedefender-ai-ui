@@ -17,6 +17,8 @@ const Dashboard = ({ onLogout }) => {
   const [lowSeverity, setLowSeverity] = useState(0);
   const [recentThreats, setRecentThreats] = useState([]);
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+
 
   // Month order function (April to March fiscal year)
   const getMonthOrder = (month) => {
@@ -30,7 +32,9 @@ const Dashboard = ({ onLogout }) => {
   // Combined fetch function in a single useEffect
   useEffect(() => {
     const fetchAllData = async () => {
+
       try {
+        setLoading(true);
         const token = Cookies.get('token');
         const userId = Cookies.get('guid');
 
@@ -53,6 +57,7 @@ const Dashboard = ({ onLogout }) => {
           body: payload
         });
         const dashboardData = await dashboardResponse.json();
+        console.log(dashboardData)
 
         // Extracting month-wise anomalies and sorting them in fiscal year order (Apr-Mar)
         const monthData = Object.keys(dashboardData.monthlyData)
@@ -100,7 +105,7 @@ const Dashboard = ({ onLogout }) => {
         ]);
 
         // Fetch alerts data
-        const alertsResponse = await fetch("${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/alerts", {
+        const alertsResponse = await fetch(`${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cybedefender/alerts`, {
           method: 'POST',
           headers,
           body: payload
@@ -113,16 +118,23 @@ const Dashboard = ({ onLogout }) => {
 
           // Filter alerts for today & sort by timestamp (latest first)
           const filteredAlerts = alertsData.alerts
-            .filter(alert => new Date(alert.date) <= new Date(today)) 
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .slice(0, 6); // Take only the top 6 recent alerts
+          .filter(alert => {
+            const alertDate = new Date(alert.date).toISOString().split("T")[0];
+            return alertDate <= today;
+          })
+  .sort((a, b) => new Date(b.date) - new Date(a.date))
+  .slice(0, 6);// Take only the top 6 recent alerts
           
           setRecentThreats(filteredAlerts);
+          console.log("length", filteredAlerts.length);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
         setError(true);
       }
+      finally {
+        setLoading(false);
+    }
     };
 
     fetchAllData();
@@ -150,159 +162,179 @@ const Dashboard = ({ onLogout }) => {
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontWeight="bold"
-        fontSize="18"
-      >
-        {severityData[index].percentage}%
-      </text>
-    );
-  };
+      return (
+        <text
+          x={x}
+          y={y}
+          fill="white"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontWeight="bold"
+          fontSize="18"
+        >
+          {severityData[index].percentage}%
+        </text>
+      );
+    };
 
-  if (error || (anomalies === 0 && recentThreats.length === 0)) {
+    if (loading) {
+      return (
+        <AppLayout onLogout={onLogout}>
+          <div className="flex items-center justify-center h-[70vh]">
+            <div className="text-lg font-medium text-gray-600">Loading...</div>
+          </div>
+        </AppLayout>
+      );
+    }
+    
+
+    if (error) {
+      return (
+        <AppLayout onLogout={onLogout}>
+          <NoDashboardState message={error} />
+        </AppLayout>
+      );
+    }
+
+    if ((anomalies === 0 && recentThreats.length === 0)) {
+      return (
+        <AppLayout onLogout={onLogout}>
+          <NoDashboardState message= "No Data found" />
+        </AppLayout>
+      );
+    }
+    
+
     return (
       <AppLayout onLogout={onLogout}>
-        <NoDashboardState message="No data found" />
-      </AppLayout>
-    );
-  }
+        {/* Threat Overview Cards */}
+        <h2 className="text-xl font-semibold mb-4">Threat Overview</h2>
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4 pt-6">
+              <div className="text-sm text-gray-500">Total Anomalies Detected</div>
+              <div className="text-2xl font-bold">{anomalies}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-50">
+            <CardContent className="p-4 pt-6">
+              <div className="text-sm text-red-600">High Severity</div>
+              <div className="text-2xl font-bold text-red-600">{highSeverity}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-yellow-50">
+            <CardContent className="p-4 pt-6">
+              <div className="text-sm text-yellow-600">Medium Severity</div>
+              <div className="text-2xl font-bold text-yellow-600">{mediumSeverity}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-50">
+            <CardContent className="p-4 pt-6">
+              <div className="text-sm text-blue-600">Low Severity</div>
+              <div className="text-2xl font-bold text-blue-600">{lowSeverity}</div>
+            </CardContent>
+          </Card>
+        </div>
 
-  return (
-    <AppLayout onLogout={onLogout}>
-      {/* Threat Overview Cards */}
-      <h2 className="text-xl font-semibold mb-4">Threat Overview</h2>
-      <div className="grid grid-cols-4 gap-4 mb-8">
+        {/* Charts Section */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <Card className="col-span-2">
+            <CardHeader>
+              <CardTitle>Total Anomalies Detected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyData}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#4444FF" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Anomalies</CardTitle>
+              <div className="text-3xl font-bold">{anomalies}</div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={severityData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      dataKey="value"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                    >
+                      {severityData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2 mt-4">
+                {severityData.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    <span className="text-sm">
+                      {entry.name} - {entry.percentage}% ({entry.count})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         <Card>
-          <CardContent className="p-4 pt-6">
-            <div className="text-sm text-gray-500">Total Anomalies Detected</div>
-            <div className="text-2xl font-bold">{anomalies}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-red-50">
-          <CardContent className="p-4 pt-6">
-            <div className="text-sm text-red-600">High Severity</div>
-            <div className="text-2xl font-bold text-red-600">{highSeverity}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-yellow-50">
-          <CardContent className="p-4 pt-6">
-            <div className="text-sm text-yellow-600">Medium Severity</div>
-            <div className="text-2xl font-bold text-yellow-600">{mediumSeverity}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-blue-50">
-          <CardContent className="p-4 pt-6">
-            <div className="text-sm text-blue-600">Low Severity</div>
-            <div className="text-2xl font-bold text-blue-600">{lowSeverity}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>Total Anomalies Detected</CardTitle>
+            <CardTitle>Recent Threats</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyData}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#4444FF" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Anomalies</CardTitle>
-            <div className="text-3xl font-bold">{anomalies}</div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={severityData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                    labelLine={false}
-                    label={renderCustomizedLabel}
-                  >
-                    {severityData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 mt-4">
-              {severityData.map((entry, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                  <span className="text-sm">
-                    {entry.name} - {entry.percentage}% ({entry.count})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Threats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left">
-                <th className="p-2">Type</th>
-                <th className="p-2">Timestamp</th>
-                <th className="p-2">Severity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentThreats.length > 0 ? (
-                recentThreats.map((threat, index) => (
-                  <tr key={index} className="border-t">
-                    <td className="p-2">{threat.threatType}</td>
-                    <td className="p-2">{threat.date}</td>
-                    <td className="p-2">
-                      <span className={`px-2 py-1 rounded-full text-sm ${getSeverityClass(threat.severity)}`}>
-                        {threat.severity}
-                      </span>
+            <table className="w-full">
+              <thead>
+                <tr className="text-left">
+                  <th className="p-2">Type</th>
+                  <th className="p-2">Timestamp</th>
+                  <th className="p-2">Severity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentThreats.length > 0 ? (
+                  recentThreats.map((threat, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="p-2">{threat.threatType}</td>
+                      <td className="p-2">{threat.date}</td>
+                      <td className="p-2">
+                        <span className={`px-2 py-1 rounded-full text-sm ${getSeverityClass(threat.severity)}`}>
+                          {threat.severity}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="p-2 text-center">
+                      No recent threats for today.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="3" className="p-2 text-center">
-                    No recent threats for today.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
-    </AppLayout>
-  );
-};
+                )}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  };
 
 export default Dashboard;
