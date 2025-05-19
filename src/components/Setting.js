@@ -42,7 +42,7 @@ const SettingsPage = ({ onLogout }) => {
   
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_CYBEDEFENDER_AI_URL}cyberdefender/notify-status`,
+          `${process.env.REACT_APP_CYBEDEFENDER_AI_URL}/cyberdefender/notify-status`,
           {
             params: {
               user_guid,
