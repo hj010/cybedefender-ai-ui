@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { X, Upload, Trash2, RotateCcw } from 'lucide-react';
 import Cookies from 'js-cookie'; // Make sure to install this package: npm install js-cookie
 
-const FileUploadModal = ({ isOpen, onClose }) => {
+const FileUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('initial'); // initial, uploading, success, failed
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -101,9 +101,12 @@ const FileUploadModal = ({ isOpen, onClose }) => {
       });
 
       // Handle XHR response
-      xhr.onload = function() {
+      xhr.onload = async function() {
         if (xhr.status === 200) {
           setUploadStatus('success');
+          if (onUploadSuccess) {
+            await onUploadSuccess(); // fetchAlerts in parent
+          }
         } else {
           setUploadStatus('failed');
           setErrorMessage('Upload failed. Please try again later.');

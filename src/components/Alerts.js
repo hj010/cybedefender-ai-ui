@@ -287,6 +287,7 @@ const Alerts = ({ onLogout }) => {
                     <FileUploadModal
                         isOpen={isUploadModalOpen}
                         onClose={() => setIsUploadModalOpen(false)}
+                        onUploadSuccess={fetchAlerts}
                     />
                 </>
             </div>

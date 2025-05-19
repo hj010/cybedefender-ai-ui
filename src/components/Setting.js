@@ -33,6 +33,39 @@ const SettingsPage = ({ onLogout }) => {
     setEmail(Cookies.get('email') || '');
   }, []);
 
+  useEffect(() => {
+    const fetchNotificationStatus = async () => {
+      const token = Cookies.get('token');
+      const user_guid = Cookies.get('guid');
+
+      if (!email || !user_guid) return;
+  
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_CYBEDEFENDER_AI_URL}cyberdefender/notify-status`,
+          {
+            params: {
+              user_guid,
+              email,
+            },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+  
+        const { notify } = response.data;
+        setNotifications({ emailNotify: notify });
+      } catch (error) {
+        console.error('Error fetching notification status:', error);
+        setNotifications({ emailNotify: false }); // Default fallback
+      }
+    };
+  
+    fetchNotificationStatus();
+  }, [email]); // Re-run when email changes
+  
+
   const handleNotificationChange = async () => {
     const token = Cookies.get('token')
     const newEmailValue = !notifications.emailNotify;
